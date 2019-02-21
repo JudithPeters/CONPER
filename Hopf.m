@@ -315,11 +315,10 @@ dt = 1e-1;                        % time step (seconds)
 
 t_steps = (t_end - t_start) / dt + 1;
 T = linspace(t_start,t_end,t_steps);
-
 omega = 2 * pi * freq(:,1);       % angular velocities (rest)
 alpha = -0.056;
-X = randn(n_regions,t_steps) .* 1e-1;
-Y = randn(n_regions,t_steps) .* 1e-1;
+X = randn(n_regions,t_steps) .* 0;
+Y = randn(n_regions,t_steps) .* 0;
 
 sigma = 0.02;
 dsig = sigma * sqrt(dt);
@@ -329,14 +328,37 @@ figure
 for t=2:t_steps
     X(:,t) = X(:,t-1) + dt *...
         ((alpha - X(:,t-1).^2 - Y(:,t-1).^2) .* X(:,t-1) - omega .* Y(:,t-1) +...
-        Gs(i) * sum(C .* (meshgrid(X(:,t-1)) - meshgrid(X(:,t-1))'),2)) + ...
+        G * sum(C .* (meshgrid(X(:,t-1)) - meshgrid(X(:,t-1))'),2)) + ...
         dsig * randn(n_regions,1);
     Y(:,t) = Y(:,t-1) + dt *...
         ((alpha - X(:,t-1).^2 - Y(:,t-1).^2) .* Y(:,t-1) + omega .* X(:,t-1) +...
-        Gs(i) * sum(C .* (meshgrid(Y(:,t-1)) - meshgrid(Y(:,t-1))'),2)) + ...
+        G * sum(C .* (meshgrid(Y(:,t-1)) - meshgrid(Y(:,t-1))'),2)) + ...
         dsig * randn(n_regions,1);
 end
 BOLD = X(:,502:15:end)';
 FC = corrcoef(BOLD);
 
 imagesc(FC,[0,0.5])
+%% Simulation using the hopf_model class
+%%
+help hopf_model
+%%
+Z = hopf_model('connectivity', C,...% structural connectivity
+    'omega', 2 * pi * freq(:,1),... % angular velocities (rest)
+    'alpha', -0.056,...             % bifurcation parameter
+    'g_coupling', 0.12,...          % global coupling
+    'sigma', 0.02,...               % noise scaling
+    'dt', 1e-1);                    % time step (seconds)
+
+relax_time = 50;                    % relaxation time (seconds)
+sim_time = 900 * n_subjects;        % simulation end time (seconds)
+sampling_rate = 1.5;                % fMRI sampling rate (seconds)
+
+Z.relax(relax_time);                % let system evolve (relax) for a while
+BOLD_sim = Z.simulate(sim_time,...  % perform actual simulation
+    sampling_rate);
+FC_sim = corrcoef(BOLD_sim);        % compute simulated FC
+
+fprintf('Hopf model with 82 regions; G = 0.12; alpha = -0.056')
+figure
+imagesc(FC_sim,[0,0.5])
