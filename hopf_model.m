@@ -76,24 +76,6 @@ classdef hopf_model < handle
         
     end
     
-    methods (Access = private)
-        function update(self)
-            dx = self.dt / self.tau *...
-                ((self.alpha - self.x.^2 - self.y.^2) .* self.x -...
-                self.omega .* self.y + self.g_coupling *...
-                sum(self.C .* (meshgrid(self.x) - meshgrid(self.x)'),2)) + ...
-                self.dsig * randn(self.n_regions,1);
-            dy = self.dt / self.tau *...
-                ((self.alpha - self.x.^2 - self.y.^2) .* self.y +...
-                self.omega .* self.x + self.g_coupling *...
-                sum(self.C .* (meshgrid(self.y) - meshgrid(self.y)'),2)) + ...
-                self.dsig * randn(self.n_regions,1);
-            
-            self.x = self.x + dx;
-            self.y = self.y + dy;
-        end
-    end
-    
     methods (Access = public)
         % constructor
         function self = hopf_model(varargin)
@@ -161,7 +143,6 @@ classdef hopf_model < handle
         end
         
         function signal = simulate(self,time,sr)
-            self.g_coupling
             t_steps = time / self.dt + 1;
             t_bold = time / sr + 1;
             signal = zeros(t_bold,self.n_regions);
@@ -174,6 +155,22 @@ classdef hopf_model < handle
                 end
             end
         end
-        
+    end
+    methods (Access = private)
+        function update(self)
+            dx = self.dt / self.tau *...
+                ((self.alpha - self.x.^2 - self.y.^2) .* self.x -...
+                self.omega .* self.y + self.g_coupling *...
+                sum(self.C .* (meshgrid(self.x) - meshgrid(self.x)'),2)) + ...
+                self.dsig * randn(self.n_regions,1);
+            dy = self.dt / self.tau *...
+                ((self.alpha - self.x.^2 - self.y.^2) .* self.y +...
+                self.omega .* self.x + self.g_coupling *...
+                sum(self.C .* (meshgrid(self.y) - meshgrid(self.y)'),2)) + ...
+                self.dsig * randn(self.n_regions,1);
+            
+            self.x = self.x + dx;
+            self.y = self.y + dy;
+        end
     end
 end
